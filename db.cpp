@@ -1,48 +1,72 @@
-// работа с бд
-#include <map>
-#include <sstream>
-#include <string>
-#include <iostream>
 #include "headers/db.h"
 #include <pqxx/pqxx>
+#include <sstream>
+#include <stdexcept>
+#include <iostream>
 
-std::unique_ptr<std::string> PostgresDB::get_connection_str(std::map<std::string, std::string> env){
-	std::stringstream stream_conn;
-	try {
-	stream_conn << "dbname="<<env.at("DB_NAME")<<" user="<<env.at("DB_USER")
-	<<" password="<<env.at("DB_PASSWORD")<<" hostaddr="<<env.at("DB_HOST")
-	<<" port="<<env.at("DB_PORT");
-	std::unique_ptr<std::string> string_stream = std::make_unique<std::string>(stream_conn.str());
-	return string_stream;
-	} catch (const std::out_of_range& e) {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
-        return nullptr;
-	}
-}
-
-pqxx::connection& PostgresDB::get_session(const std::string& conn_str) {
+PostgresDB::PostgresDB(const std::map<std::string, std::string>& env) 
+    : conn_str(nullptr), connection(nullptr), work_obj(nullptr) {
     try {
-        connection = std::make_unique<pqxx::connection>(conn_str);
-        return *connection;
-    } catch (const std::exception& e) {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        // Формируем строку подключения
+        std::stringstream stream_conn;
+        stream_conn << "dbname=" << env.at("DB_NAME")
+                   << " user=" << env.at("DB_USER")
+                   << " password=" << env.at("DB_PASSWORD")
+                   << " hostaddr=" << env.at("DB_HOST")
+                   << " port=" << env.at("DB_PORT");
+        
+        conn_str = new std::string(stream_conn.str());
+        
+        // Создаём соединение
+        connection = new pqxx::connection(*conn_str);
+        
+        // Создаём транзакцию
+        work_obj = new pqxx::work(*connection);
+        
+    } catch (...) {
+        // При ошибке освобождаем уже выделенные ресурсы
+        delete work_obj;
+        delete connection;
+        delete conn_str;
         throw;
     }
 }
 
-pqxx::work PostgresDB::get_database_obj(pqxx::connection& connection) {
-    try {
-        return pqxx::work(connection);
-    } catch (const std::exception& e) {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
-        throw;
+PostgresDB::~PostgresDB() {
+    delete work_obj;     // Удаляем в обратном порядке создания
+    delete connection;
+    delete conn_str;
+}
+
+ bool PostgresDB::is_connected(){
+        return connection && connection->is_open();
+ }
+
+void PostgresDB::commit() {
+    if (work_obj) {
+        try {
+            work_obj->commit();
+        } catch (...) {
+            // При ошибке коммита делаем rollback
+            rollback();
+            throw;
+        }
     }
 }
 
-void PostgresDB::commit(pqxx::work& work){
-    try {
-        work.commit();
-    } catch (const std::exception& e){
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+void PostgresDB::rollback() {
+    if (work_obj) {
+        try {
+            work_obj->abort();
+        } catch (...) {
+            // Игнорируем ошибки при откате
+        }
     }
+}
+
+pqxx::result PostgresDB::execute(const std::string& sql) {
+    if (!work_obj) {
+        throw std::runtime_error("No active transaction");
+    }
+    return work_obj->exec(sql);
 }
