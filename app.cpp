@@ -14,6 +14,13 @@ int main() {
     PostgresDB db = PostgresDB(env);
     if (db.is_connected()) {
         std::cout << "Все гуд" << std::endl;
+        std::string groups = get_groups(env, db);
+        /*for (auto const &row: groups)
+        {
+           for (auto const &field: row) std::cout << field.c_str() << '\t';
+           std::cout << '\n';
+        }*/
+        std::cout <<groups<< std::endl;
     } else {
         std::cout << "Подключение умерло" << std::endl;
     }

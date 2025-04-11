@@ -35,3 +35,17 @@ std::string read_sql_file(std::map<std::string, std::string> env, std::string fi
         sql.close();
         return result;
 }
+
+json result_to_json(const pqxx::result& res){
+        json j = json::array();
+    
+        for (const auto& row : res) {
+        json j_row;
+        for (const auto& field : row) {
+            j_row[field.name()] = field.is_null() ? nullptr : field.c_str();
+        }
+        j.push_back(j_row);
+    }
+    
+    return j;
+}
