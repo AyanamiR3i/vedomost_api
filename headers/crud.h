@@ -6,8 +6,11 @@
 #include <string>
 #include <pqxx/pqxx>
 #include <map>
+#include <vector>
 
-//получить список учебных групп из бд
-std::string get_groups(std::map<std::string, std::string> env, PostgresDB& db);
-
+//получить данные из бд
+std::string get_data_from_db(std::map<std::string, std::string> env,							
+							 PostgresDB& db,
+							 std::string filename,
+							 std::vector<std::string> vector_params = {});
 #endif //CRUD_H

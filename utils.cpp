@@ -5,19 +5,24 @@
 #include <sstream>
 #include <fstream>
 
-std::vector<std::string> split(const std::string& str, char delimiter)
-{
-        //разбиение строки по разделителю
-        std::vector<std::string> tokens;
-        std::string token;
-        std::stringstream ss(str);
-
-        while (getline(ss, token, delimiter)) {
-        tokens.push_back(token);
+std::map<std::string, std::string> get_env(std::string path){
+        std::map<std::string, std::string> env;
+        std::ifstream file(path);
+        std::string line;
+    
+        while (std::getline(file, line)) {
+                // Ищем позицию знака '='
+                size_t pos = line.find('=');
+                if (pos != std::string::npos) {
+                    std::string key = line.substr(0, pos);
+                    std::string value = line.substr(pos + 1);
+                    env[key] = value;
+                }
         }
-
-        return tokens;
+    
+        return env;
 }
+
 
 std::string read_sql_file(std::map<std::string, std::string> env, std::string filename){
         std::string path = env["SQL_PATH"] + filename;

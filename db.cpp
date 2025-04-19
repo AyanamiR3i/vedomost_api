@@ -64,9 +64,9 @@ void PostgresDB::rollback() {
     }
 }
 
-pqxx::result PostgresDB::execute(const std::string& sql) {
+pqxx::result PostgresDB::execute(const std::string& sql, pqxx::params params) {
     if (!work_obj) {
         throw std::runtime_error("No active transaction");
     }
-    return work_obj->exec(sql);
+    return work_obj->exec(sql, params);
 }

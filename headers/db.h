@@ -11,7 +11,7 @@ private:
     pqxx::connection* connection;
     pqxx::work* work_obj;
 
-    // Запрещаем копирование
+    // запрещаем копирование
     PostgresDB(const PostgresDB&) = delete;
     PostgresDB& operator=(const PostgresDB&) = delete;
 
@@ -29,7 +29,7 @@ public:
     void rollback();
 
     //выполнить sql-запрос
-    pqxx::result execute(const std::string& sql);
+    pqxx::result execute(const std::string& sql, pqxx::params params);
 };
 
 #endif //DB_H
