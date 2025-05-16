@@ -47,7 +47,6 @@ void PostgresDB::commit() {
         try {
             work_obj->commit();
         } catch (...) {
-            // При ошибке коммита делаем rollback
             rollback();
             throw;
         }

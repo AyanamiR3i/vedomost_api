@@ -1,0 +1,1 @@
+DELETE from students where fk_study_group = $1;

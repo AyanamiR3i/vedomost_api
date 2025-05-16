@@ -24,20 +24,19 @@ std::map<std::string, std::string> get_env(std::string path){
 }
 
 
-std::string read_sql_file(std::map<std::string, std::string> env, std::string filename){
-        std::string path = env["SQL_PATH"] + filename;
-        std::ifstream sql(path);
+std::string read_file(std::string filepath){
+        std::ifstream file(filepath);
         std::string result = "";
-        if(!sql.is_open()){
+        if(!file.is_open()){
                 std::cerr<<"Не удалось открыть файл!"<<std::endl;
         } else{
                 std::string line;
                 
-                while(std::getline(sql, line)){
+                while(std::getline(file, line)){
                         result += line;
                 }
         }
-        sql.close();
+        file.close();
         return result;
 }
 

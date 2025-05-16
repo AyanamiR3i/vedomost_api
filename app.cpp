@@ -8,6 +8,7 @@
 #include "headers/crud.h"
 #include "headers/routing.h"
 #include "headers/utils.h"
+#include <thread>
 
 
 int main() {
@@ -19,10 +20,10 @@ int main() {
     std::map<std::string, std::string> env = get_env(".env");
     PostgresDB db = PostgresDB(env);
     if (db.is_connected()) {
-        std::cout << "Все гуд" << std::endl;
-        //std::string groups = get_data_from_db(env, db, "get_study_groups.sql");
-        //std::cout <<groups<< std::endl;
-        create_server(env, db);
+        std::cout << "Подключаемся к базе данных..." << std::endl;
+        std::thread server_thread(create_server, std::ref(env), std::ref(db));
+        std::cout << "Сервер запущен на http://" << env["API_HOST"] << ":" << env["API_PORT"] << "\n";
+        server_thread.join();
     } else {
         std::cout << "Подключение умерло" << std::endl;
     }

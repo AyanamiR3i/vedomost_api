@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учебные группы</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .form-group { margin-bottom: 15px; }
+        label { display: inline-block; width: 150px; font-weight: bold; }
+        input { padding: 8px; width: 200px; }
+        button { 
+            padding: 8px 12px; 
+            margin: 2px;
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+        }
+        .save-btn { background-color: #4CAF50; }
+        .delete-btn { background-color: #f44336; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Управление учебными группами</h1>
+    
+    <div class="form-container">
+        <h2>Добавить новую группу</h2>
+        <div class="form-group">
+            <label for="groupName">Группа:</label>
+            <input type="text" id="groupName" required>
+        </div>
+        <div class="form-group">
+            <label for="semesters">Кол-во семестров:</label>
+            <input type="number" id="semesters" min="1" required>
+        </div>
+        <button id="saveButton" class="save-btn">Сохранить</button>
+    </div>
+    
+    <div class="table-container">
+        <h2>Список групп</h2>
+        <table id="groupsTable">
+            <thead>
+                <tr>
+                    <th>Группа</th>
+                    <th>Кол-во семестров</th>
+                    <th>Кол-во студентов</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="groupsTableBody">
+                
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+    const elements = {
+        groupName: document.getElementById('groupName'),
+        semesters: document.getElementById('semesters'),
+        saveButton: document.getElementById('saveButton'),
+        tableBody: document.getElementById('groupsTableBody')
+    };
+
+    async function loadGroups() {
+        console.log('Загрузка списка групп...');
+        
+        try {
+            const response = await fetch('http://localhost:8080/get_groups');
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка HTTP: ${response.status}`);
+            }
+            
+            const groups = await response.json();
+            console.log('Получены данные:', groups);
+            
+            if (!Array.isArray(groups)) {
+                throw new Error('Ожидался массив групп');
+            }
+            
+            renderGroups(groups);
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+            showError(error.message);
+        }
+    }
+
+    function renderGroups(groups) {
+        if (!groups || groups.length === 0) {
+            elements.tableBody.innerHTML = '<tr><td colspan="4">Нет данных о группах</td></tr>';
+            return;
+        }
+        
+        elements.tableBody.innerHTML = groups.map(group => `
+            <tr data-pk="${group.pk}">
+                <td>${escapeHtml(group.name) || 'Не указано'}</td>
+                <td>${group.semester || '0'}</td>
+                <td>${group.students_amount || '0'}</td>
+                <td>
+                    <button class="delete-btn" data-pk="${group.pk}">Удалить</button>
+                </td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', deleteGroup);
+        });
+    }
+
+    async function deleteGroup(e) {
+        const pk = e.target.dataset.pk;
+        if (!pk) return;
+        
+        if (!confirm('Вы уверены, что хотите удалить эту группу?')) {
+            return;
+        }
+        
+        try {
+            console.log('Удаление группы с pk:', pk);
+            
+            const response = await fetch('http://localhost:8080/delete_group', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pk: parseInt(pk) })
+            });
+            
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            await loadGroups();
+            alert('Группа успешно удалена!');
+        } catch (error) {
+            console.error('Ошибка при удалении:', error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    }
+
+    async function addGroup() {
+        const groupName = elements.groupName.value.trim();
+        const semesters = elements.semesters.value;
+        
+        if (!groupName || !semesters) {
+            alert('Пожалуйста, заполните все поля');
+            return;
+        }
+        
+        try {
+            console.log('Отправка данных:', { name: groupName, semester: semesters });
+            
+            const response = await fetch('http://localhost:8080/add_group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    name: groupName, 
+                    semester: parseInt(semesters) 
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Ошибка сервера');
+            }
+            
+            const result = await response.json();
+            console.log('Результат добавления:', result);
+            
+            alert(`Группа "${groupName}" успешно добавлена!`);
+            elements.groupName.value = '';
+            elements.semesters.value = '';
+            
+            await loadGroups();
+        } catch (error) {
+            console.error('Ошибка при добавлении:', error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    }
+
+    function escapeHtml(unsafe) {
+        if (!unsafe) return unsafe;
+        return unsafe.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showError(message) {
+        elements.tableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="error">
+                    Ошибка загрузки данных: ${escapeHtml(message)}
+                </td>
+            </tr>`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM полностью загружен');
+        elements.saveButton.addEventListener('click', addGroup);
+        loadGroups();
+    });
+    </script>
+</body>
+</html>

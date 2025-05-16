@@ -7,8 +7,13 @@
 
 class PostgresDB {
 private:
-    std::string* conn_str;
+    //строка подключения
+    std::string* conn_str; 
+
+    //указатель на объект подключения
     pqxx::connection* connection;
+
+    //указатель на объект транзакции для работы с бд 
     pqxx::work* work_obj;
 
     // запрещаем копирование
@@ -18,6 +23,13 @@ private:
 public:
     explicit PostgresDB(const std::map<std::string, std::string>& env);
     ~PostgresDB();
+
+    //структура для хранения параметров запросов
+    struct params{ 
+        int int_param = -1;
+        double double_param = -1.0;
+        std::string string_param = "";
+    };
 
     //проверка соединения
     bool is_connected();

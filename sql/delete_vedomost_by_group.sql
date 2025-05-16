@@ -1,0 +1,1 @@
+DELETE from vedomost where fk_student in (select pk from students where fk_study_group = $1);

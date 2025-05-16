@@ -8,9 +8,9 @@
 #include <map>
 #include <vector>
 
-//получить данные из бд
-std::string get_data_from_db(std::map<std::string, std::string> env,							
+//получение и отправка данных в бд (параметры: ссылка на окружение, ссылка на объект бд, имя sql-файла, параметры запроса)
+std::string exec_sql(std::map<std::string, std::string> env,							
 							 PostgresDB& db,
 							 std::string filename,
-							 std::vector<std::string> vector_params = {});
+							 std::vector<PostgresDB::params> vector_params = {});
 #endif //CRUD_H

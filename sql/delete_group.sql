@@ -1,0 +1,1 @@
+DELETE from groups where pk = $1;
