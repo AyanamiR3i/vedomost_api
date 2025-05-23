@@ -12,5 +12,5 @@
 std::string exec_sql(std::map<std::string, std::string> env,							
 							 PostgresDB& db,
 							 std::string filename,
-							 std::vector<PostgresDB::params> vector_params = {});
+							 pqxx::params params = {});
 #endif //CRUD_H

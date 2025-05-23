@@ -53,3 +53,8 @@ json result_to_json(const pqxx::result& res){
     
     return j;
 }
+
+std::string clear_string(std::string old_string){
+        old_string.erase(std::remove(old_string.begin(), old_string.end(), '"'), old_string.end());
+        return old_string;
+}

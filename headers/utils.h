@@ -18,4 +18,7 @@ std::string read_file(std::string filepath);
 
 //преобразовать pqxx::result в json
 json result_to_json(const pqxx::result& res);
+
+//очистить строку от кавычек
+std::string clear_string(std::string old_string);
 #endif //UTILS_H

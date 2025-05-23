@@ -1,0 +1,1 @@
+DELETE from students where pk = $1;

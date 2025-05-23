@@ -1,0 +1,1 @@
+DELETE from vedomost where fk_discipline = $1;

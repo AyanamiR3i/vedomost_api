@@ -1,0 +1,1 @@
+DELETE from discipline where pk = $1;

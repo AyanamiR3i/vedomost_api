@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дисциплины</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .form-group { margin-bottom: 15px; }
+        label { display: inline-block; width: 150px; font-weight: bold; }
+        input { padding: 8px; width: 200px; }
+        button { 
+            padding: 8px 12px; 
+            margin: 2px;
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+        }
+        .save-btn { background-color: #4CAF50; }
+        .delete-btn { background-color: #f44336; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Управление дисциплинами</h1>
+    
+    <div class="form-container">
+        <h2>Добавить новую дисциплину</h2>
+        <div class="form-disc">
+            <label for="discName">Название дисциплины:</label>
+            <input type="text" id="discName" required>
+        </div>
+        <div class="form-disc">
+            <label for="hoursAmount">Кол-во часов:</label>
+            <input type="number" id="hoursAmount" min="1" required>
+        </div>
+        <div class="form-disc">
+            <label for="attestationType">Тип аттестации:</label>
+            <select id="attestationSelection">
+            <option value="option1">зачет</option>
+            <option value="option2">диф.зачет</option>
+            <option value="option3">экзамен</option>
+</select>
+        </div>
+        <button id="saveButton" class="save-btn">Сохранить</button>
+    </div>
+    
+    <div class="table-container">
+        <h2>Список дисциплин</h2>
+        <table id="groupsTable">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Кол-во часов</th>
+                    <th>Тип аттестации</th>
+                </tr>
+            </thead>
+            <tbody id="discTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+    const elements = {
+        discName: document.getElementById('discName'),
+        hoursAmount: document.getElementById('hoursAmount'),
+        hoursAmount: document.getElementById('hoursAmount'),
+        attestationType: document.getElementById('attestationType'),
+        saveButton: document.getElementById('saveButton'),
+        tableBody: document.getElementById('discTableBody')
+    };
+
+    async function loadDisciplines() {
+        console.log('Загрузка списка дисциплин...');
+        
+        try {
+            const response = await fetch('http://localhost:8080/get_discs');
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка HTTP: ${response.status}`);
+            }
+            
+            const discs = await response.json();
+            console.log('Получены данные:', discs);
+            
+            if (!Array.isArray(discs)) {
+                throw new Error('Ожидался массив дисциплин');
+            }
+            
+            renderDisciplines(discs);
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+            showError(error.message);
+        }
+    }
+
+    function renderDisciplines(discs) {
+        if (!discs || discs.length === 0) {
+            elements.tableBody.innerHTML = '<tr><td colspan="4">Нет данных о дисциплинах</td></tr>';
+            return;
+        }
+        
+        elements.tableBody.innerHTML = discs.map(discs => `
+            <tr data-pk="${discs.pk}">
+                <td>${escapeHtml(discs.name) || 'Не указано'}</td>
+                <td>${discs.hoursAmount || '0'}</td>
+                <td>${discs.attestationType || '0'}</td>
+                <td>
+                    <button class="delete-btn" data-pk="${discs.pk}">Удалить</button>
+                </td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', deleteDiscipline);
+        });
+    }
+
+    async function deleteDiscipline(e) {
+        const pk = e.target.dataset.pk;
+        if (!pk) return;
+        
+        if (!confirm('Вы уверены, что хотите удалить эту дисциплину?')) {
+            return;
+        }
+        
+        try {
+            console.log('Удаление дисциплины с pk:', pk);
+            
+            const response = await fetch('http://localhost:8080/delete_disc', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pk: parseInt(pk) })
+            });
+            
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            await loadDisciplines();
+            alert('Дисциплина успешно удалена!');
+        } catch (error) {
+            console.error('Ошибка при удалении:', error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    }
+
+    async function addDiscipline() {
+        const discName = elements.discName.value.trim();
+        const hoursAmount = elements.hoursAmount.value;
+        const attestationItem = document.getElementById("attestationSelection");
+        if (!attestationItem || attestationItem.selectedIndex === -1) {
+            console.error("Элемент не найден или вариант не выбран!");
+            return;
+        }
+        const attestationType = attestationItem.options[attestationItem.selectedIndex].text;
+        
+        if (!discName || !hoursAmount || !attestationType) {
+            return;
+        }
+        
+        try {
+            console.log('Отправка данных:', { disc_name: discName,
+             hours_amount: hoursAmount, attestation_type: attestationType});
+            
+            const response = await fetch('http://localhost:8080/add_disc', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    disc_name: discName, 
+                    hours_amount: parseInt(hoursAmount),
+                    attestation_type: attestationType
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Ошибка сервера');
+            }
+            
+            const result = await response.json();
+            console.log('Результат добавления:', result);
+            
+            alert(`Дисциплина "${discName}" успешно добавлена!`);
+            elements.discName.value = '';
+            elements.hoursAmount.value = '';
+            
+            await loadDisciplines();
+        } catch (error) {
+            console.error('Ошибка при добавлении:', error);
+            alert(`Ошибка: ${error.message}`);
+        }
+    }
+
+    function escapeHtml(unsafe) {
+        if (!unsafe) return unsafe;
+        return unsafe.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function showError(message) {
+        elements.tableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="error">
+                    Ошибка загрузки данных: ${escapeHtml(message)}
+                </td>
+            </tr>`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM полностью загружен');
+        elements.saveButton.addEventListener('click', addDiscipline);
+        loadDisciplines();
+    });
+    </script>
+</body>
+</html>

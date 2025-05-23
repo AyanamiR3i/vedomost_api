@@ -10,21 +10,9 @@
 std::string exec_sql(std::map<std::string, std::string> env,							
 							 PostgresDB& db,
 							 std::string filename,
-							 std::vector<PostgresDB::params> vector_params){
+							 pqxx::params params){
 	try{
 		std::string sql = read_file(env["SQL_PATH"] + filename);
-		pqxx::params params;
-		for(auto &p: vector_params){
-			if(p.int_param != -1){
-				params.append(p.int_param);
-			}
-			else if(p.double_param != -1.0){
-				params.append(p.double_param);
-			}
-			else if (p.string_param != ""){
-				params.append(p.string_param);
-			}
-		}
 		pqxx::result data = db.execute(sql, params);
 		db.commit();
 		if(!data.empty()){
